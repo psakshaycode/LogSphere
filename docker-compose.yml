@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  app:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: example
+      DB_NAME: logsphere
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: logsphere
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgweb:
+    image: sosedoff/pgweb
+    environment:
+      PGWEB_DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+    ports:
+      - "8081:8081"
+    depends_on:
+      - db
+
+  migrator:
+    image: migrate/migrate
+    volumes:
+      - ./backend/migrations:/migrations
+    depends_on:
+      - db
+    command: ["-path=/migrations/", "-database=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable", "up"]
+
+volumes:
+  postgres_data:
